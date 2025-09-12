@@ -1,0 +1,315 @@
+{
+    "flow_id": "shuttle_booking_v2",
+    "flow_name": "Shuttle Booking Flow",
+    "version": "2.0",
+    "description": "SA Travels shuttle booking flow (ORTambo <-> Midstream, Lanseria <-> Midstream). Supports one-way and round-trip bookings",
+    "nodes": {
+      "start": {
+        "triggers": ["hi", "hello", "help","hallo","haai","Heita"],
+        "response": {
+          "type": "interactive",
+          "body": "👋 Hi! Welcome to SA Travels. Would you like to book a shuttle for one of our routes?",
+          "buttons": [
+            { "id": "book_now", "title": "Book Now", "next": "choose_route" }
+          ]
+        },
+        "fallback": {
+          "text": "Say 'Hi' to start or tap Book Now."
+        }
+      },
+  
+      "choose_route": {
+        "response": {
+          "type": "interactive",
+          "body": "Please choose a route:",
+          "buttons": [
+            { "id": "r_or_mid", "title": "OR Tambo ↔ Midstream", "next": "choose_direction" },
+            { "id": "r_lan_mid", "title": "Lanseria ↔ Midstream", "next": "choose_direction" }
+          ]
+        },
+        "fallback": {
+          "text": "Please tap one of the routes above."
+        }
+      },
+  
+      "choose_direction": {
+        "response": {
+          "type": "interactive",
+          "body": "Which direction for this route?",
+          "buttons": [
+            { "id": "dir_a_to_b", "title": "{{route_end_a}} → {{route_end_b}}", "meta": { "direction": "AtoB" }, "next": "choose_trip_type" },
+            { "id": "dir_b_to_a", "title": "{{route_end_b}} → {{route_end_a}}", "meta": { "direction": "BtoA" }, "next": "choose_trip_type" },
+            { "id": "dir_round", "title": "Round trip", "meta": { "direction": "round" }, "next": "choose_trip_type" }
+          ]
+        },
+        "fallback": {
+          "text": "Tap one of the options: From A→B, From B→A or Round trip."
+        }
+      },
+  
+      "choose_trip_type": {
+        "response": {
+            "type": "interactive",
+            "body": "Great — we support single-way and round trips. We'll collect date/time, pickup location and confirm. Proceed?",
+            "buttons": [
+            { "id": "proceed_yes", "title": "Proceed", "next": "date_selection" },
+            { "id": "proceed_no", "title": "Cancel", "next": "cancel_booking" }
+            ]
+        },
+        "fallback": {
+            "text": "Reply 'Proceed' to continue or 'Cancel' to stop."
+        }
+    },
+  
+      "date_selection": {
+        "response": {
+            "type": "interactive",
+            "list": {
+              "type": "list",
+              "header": { "type": "text", "text": "📅 Select Travel Date" },
+              "body": { "text": "Choose a date option:" },
+              "footer": { "text": "You can also type a date in DD/MM/YYYY" },
+              "action": {
+                "button": "Select",
+                "sections": [
+                  {
+                    "title": "Quick Picks",
+                    "rows": [
+                      { "id": "date_today", "title": "Today", "description": "Travel today", "meta": { "days_offset": 0 }, "next": "custom_time_entry" },
+                      { "id": "date_tomorrow", "title": "Tomorrow", "description": "Travel tomorrow", "meta": { "days_offset": 1 }, "next": "custom_time_entry" }
+                    ]
+                  },
+                  {
+                    "title": "Custom",
+                    "rows": [
+                      { "id": "date_pick", "title": "Pick a date", "description": "Enter a specific date", "next": "custom_date_entry" }
+                    ]
+                  }
+                ]
+              }
+            }
+        },
+        "fallback": {
+            "text": "Type your travel date in DD/MM/YYYY (e.g., 10/09/2025)."
+        }
+        },
+
+        "custom_date_entry": {
+        "response": {
+            "type": "text",
+            "text": "Please type your preferred travel date in DD/MM/YYYY format (e.g., 15/09/2025)."
+        },
+        "validation": {
+            "type": "regex",
+            "pattern": "^(0[1-9]|[12][0-9]|3[01])/(0[1-9]|1[0-2])/[0-9]{4}$",
+            "invalid_message": "❌ Invalid date. Please use DD/MM/YYYY (e.g., 15/09/2025)."
+        },
+        "next_on_valid": "custom_time_entry",
+        "max_retries": 3
+        },
+
+        "time_selection": {
+        "response": {
+            "type": "interactive",
+            "body": "⏰ Choose time or pick custom:",
+            "buttons": [
+            { "id": "time_morning", "title": "Morning (08:00 - 11:59)", "meta": { "approx_time": "09:00" }, "next": "pickup_method" },
+            { "id": "time_afternoon", "title": "Afternoon (12:00 - 16:59)", "meta": { "approx_time": "14:00" }, "next": "pickup_method" },
+            { "id": "time_evening", "title": "Evening (17:00 - 20:59)", "meta": { "approx_time": "18:30" }, "next": "pickup_method" },
+            { "id": "time_custom", "title": "Pick a time", "next": "custom_time_entry" }
+            ]
+        },
+        "fallback": {
+            "text": "Type your time in 24h format, e.g., 09:30 or 18:45."
+        }
+        },
+
+        "custom_time_entry": {
+        "response": {
+            "type": "text",
+            "text": "Please type your preferred time in 24h format (HH:MM), e.g., 14:30."
+        },
+        "validation": {
+            "type": "regex",
+            "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+            "invalid_message": "❌ Time not recognized. Use HH:MM (24h), e.g., 09:30."
+        },
+        "next_on_valid": "pickup_method",
+        "max_retries": 3,
+        "on_fail": "speak_to_agent"
+        },
+
+  
+      "pickup_method": {
+        "response": {
+          "type": "interactive",
+          "body": "How would you like to provide pickup location?",
+          "buttons": [
+            { "id": "share_location", "title": "Share Location", "next": "capture_location" },
+            { "id": "type_address", "title": "Type Address", "next": "type_address" }
+          ]
+        },
+        "fallback": {
+          "text": "Share Location will let you send your phone's location. Type Address lets you type a street/place."
+        }
+      },
+  
+      "capture_location": {
+        "description": "User is expected to send a WhatsApp location message. The system will accept 'location' message types.",
+        "expected": ["location"],
+        "on_receive": {
+          "store_as": "pickup_coords",
+          "next": "drop_or_round"
+        },
+        "fallback": {
+          "text": "We did not receive a valid location. Please use Attach → Location, or type your address manually.",
+          "max_retries": 2,
+          "on_max_fail": "type_address"
+        }
+      },
+  
+      "type_address": {
+        "response": {
+          "type": "text",
+          "body": "Please type the pickup address (street, suburb or landmark)."
+        },
+        "expected": ["text"],
+        "validation": {
+          "type": "min_length",
+          "min": 5,
+          "invalid_message": "Address too short. Please provide a full pickup address (e.g., '123 Main St, Midstream')."
+        },
+        "on_receive": {
+          "store_as": "pickup_address",
+          "next": "drop_or_round"
+        },
+        "fallback": {
+          "text": "Please provide a usable pickup address or share location.",
+          "max_retries": 3,
+          "on_max_fail": "speak_to_agent"
+        }
+      },
+  
+      "drop_or_round": {
+        "response": {
+          "type": "conditional",
+          "description": "If trip is round, ask drop/time for return; else collect drop if route requires explicit drop address.",
+          "evaluate": "if direction == 'round' then 'return_trip_info' else 'confirm_summary'"
+        }
+      },
+  
+      "return_trip_info": {
+        "response": {
+          "type": "text",
+          "body": "For the return trip, choose date/time similarly. Would you like to use same return date/time or pick separate?"
+        },
+        "buttons": [
+          { "id": "return_same", "title": "Use same date/time", "next": "confirm_summary" },
+          { "id": "return_custom", "title": "Pick return date/time", "next": "date_selection_return" }
+        ],
+        "fallback": {
+          "text": "Tap 'Use same' or 'Pick return date/time'."
+        }
+      },
+  
+      "date_selection_return": {
+        "response": { "type": "interactive", "body": "Return trip: choose date:", "buttons": [
+          { "id": "r_date_today", "title": "Today", "meta": { "days_offset": 0 }, "next": "time_selection_return" },
+          { "id": "r_date_tomorrow", "title": "Tomorrow", "meta": { "days_offset": 1 }, "next": "time_selection_return" },
+          { "id": "r_date_pick", "title": "Pick a date", "next": "custom_date_form_return" }
+        ] },
+        "fallback": { "text": "Choose a return date or Pick a date." }
+      },
+        "time_selection_return": {
+        "response": { "type": "text", "body": "Return trip: Please type time in 24h format (HH:MM), e.g., 09:30." },
+        "validation": { "type": "regex", "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$", "invalid_message": "Use HH:MM format, e.g., 18:45." },
+        "next_on_valid": "confirm_summary"
+        },
+  
+      
+  
+      "confirm_summary": {
+        "response": {
+          "type": "text",
+          "body": "Please confirm your booking:\n\nRoute: {{route_title}}\nDirection: {{direction}}\nDate: {{date}}\nTime: {{time}}\nPickup: {{pickup_address_or_coords}}"
+        },
+        "buttons": [
+          { "id": "confirm", "title": "Confirm", "next": "book_confirmed" },
+          { "id": "cancel", "title": "Cancel booking", "next": "cancel_booking" }
+        ],
+        "fallback": { "text": "" }
+      },
+  
+      "change_field": {
+        "response": {
+          "type": "interactive",
+          "body": "Which detail would you like to change?",
+          "buttons": [
+            { "id": "chg_date", "title": "Date/Time", "next": "date_selection" },
+            { "id": "chg_pickup", "title": "Pickup", "next": "pickup_method" },
+            { "id": "chg_route", "title": "Route/Direction", "next": "choose_route" }
+          ]
+        },
+        "fallback": { "text": "Tap the field you want to change." }
+      },
+  
+      "payment_or_confirm": {
+        "response": {
+          "type": "interactive",
+          "body": "Do you want to pay now or pay later?",
+          "buttons": [
+            { "id": "pay_now", "title": "Pay Now", "next": "payment_link" },
+            { "id": "pay_later", "title": "Pay Later", "next": "book_confirmed" }
+          ]
+        },
+        "fallback": { "text": "Choose Pay Now or Pay Later." }
+      },
+  
+      "payment_link": {
+        "response": {
+          "type": "text",
+          "body": "Please follow this secure payment link: {{payment_url}}. After payment, reply 'Paid' to confirm."
+        },
+        "expected": ["text"],
+        "on_receive": {
+          "if_text_equals": { "Paid": "book_confirmed" },
+          "else": "payment_pending"
+        },
+        "fallback": { "text": "If you paid, reply 'Paid'. To retry payment, type 'Retry'." }
+      },
+  
+      "payment_pending": {
+        "response": { "type": "text", "body": "Payment pending. Reply 'Paid' when complete or type 'Retry' to get a new link." }
+      },
+  
+      "book_confirmed": {
+        "response": {
+          "type": "template",
+          "template_name": "booking_confirmed",
+          "variables": {
+            "booking_id": "{{booking_id}}",
+            "route": "{{route_title}}",
+            "date": "{{date}}",
+            "time": "{{time}}"
+          },
+          "body_text": "🎉 Your booking {{booking_id}} is confirmed for {{date}} at {{time}}. Happy journey! If you need to update anything, call us at 0800-000-000."
+        },
+        "next": "end"
+      },
+  
+      "cancel_booking": {
+        "response": { "type": "text", "body": "Your booking request has been cancelled. If you need anything else, type 'Hi'." }
+      },
+  
+      "speak_to_agent": {
+        "response": { "type": "text", "body": "Sorry, we couldn't process that. Please try again from the start by saying 'Hi'." }
+      },
+  
+      "error_unknown": { "response": { "type": "text", "body": "Sorry, I didn't understand that." } },
+  
+      "end": {
+        "response": { "type": "text", "body": "Thanks for using SA Travels. Safe travels! ✨" }
+      }
+    }
+}
+  
